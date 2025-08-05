@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulário de Item do Cardápio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+</head>
+<body class="bg-light">
+<div th:replace="~{index :: navbar}"></div>
+
+<div class="container mt-4">
+    <form th:action="@{/cardapio/salvar}" th:object="${itemCardapio}" method="post">
+        <input type="hidden" th:field="*{id}" />
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 th:if="${itemCardapio.id == null}"><i class="fas fa-plus-circle me-3"></i>Novo Item do Cardápio</h2>
+            <h2 th:unless="${itemCardapio.id == null}"><i class="fas fa-edit me-3"></i>Editar Item do Cardápio</h2>
+            <div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Salvar Tudo</button>
+                <a th:href="@{/cardapio}" class="btn btn-secondary"><i class="fas fa-times me-2"></i>Cancelar</a>
+            </div>
+        </div>
+        <!-- NOVO BLOCO PARA EXIBIR MENSAGENS DE ERRO -->
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Erro ao salvar:</strong> <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="row g-4">
+            <!-- COLUNA ESQUERDA: DADOS BÁSICOS -->
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-header fw-bold">Informações do Item</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="nome" class="form-label">Nome do Prato/Item</label>
+                            <input type="text" class="form-control" id="nome" th:field="*{nome}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" th:field="*{descricao}" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="precoVenda" class="form-label">Preço de Venda (R$)</label>
+                            <input type="number" class="form-control" id="precoVenda" th:field="*{precoVenda}" required min="0" step="0.01">
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="disponivel" th:field="*{disponivel}">
+                            <label class="form-check-label" for="disponivel">Disponível no cardápio</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUNA DIREITA: FICHA TÉCNICA (RECEITA) -->
+            <div class="col-md-7">
+                <div class="card shadow-sm">
+                    <div class="card-header fw-bold">Ficha Técnica (Receita)</div>
+                    <div class="card-body">
+                        <table class="table" id="tabela-ficha-tecnica">
+                            <thead>
+                            <tr class="align-middle">
+                                <th>Ingrediente</th>
+                                <th>Qtd. Necessária</th>
+                                <th>Un.</th>
+                                <th class="text-center">Estoque Atual</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Linhas existentes da receita (para edição) -->
+                            <tr th:each="item, stat : *{fichaTecnica}" class="align-middle">
+                                <input type="hidden" th:field="*{fichaTecnica[__${stat.index}__].id}" />
+                                <td>
+                                    <select class="form-select" th:field="*{fichaTecnica[__${stat.index}__].ingrediente}" onchange="atualizarDadosIngrediente(this)" required>
+                                        <option value="">Selecione...</option>
+                                        <option th:each="ing : ${ingredientes}"
+                                                th:value="${ing.id}"
+                                                th:text="${ing.nome}"
+                                                th:data-unidade-enum="${ing.unidadeMedida}"
+                                                th:data-estoque="${ing.quantidadeEmEstoque}"
+                                                th:selected="${ing.id == item.ingrediente?.id}"></option>
+                                    </select>
+                                </td>
+                                <td><input type="number" class="form-control" th:field="*{fichaTecnica[__${stat.index}__].quantidade}" step="0.01" min="0" required></td>
+                                <td class="unidade-label" th:text="${item.ingrediente?.unidadeMedida?.getAbreviacao()}"></td>
+                                <td class="estoque-label text-center" th:text="${item.ingrediente?.quantidadeEmEstoque}"></td>
+                                <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removerLinha(this)"><i class="fas fa-trash"></i></button></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer text-center">
+                        <button type="button" class="btn btn-success" onclick="adicionarLinha()">
+                            <i class="fas fa-plus me-2"></i>Adicionar Ingrediente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script th:inline="javascript">
+    // Dados passados pelo Controller
+    const ingredientes = /*[[${ingredientes}]]*/ [];
+    let rowIndex = /*[[${itemCardapio.fichaTecnica != null ? itemCardapio.fichaTecnica.size() : 0}]]*/ 0;
+
+    // Thymeleaf cria um mapa de Unidades de Medida para o JavaScript usar
+    const unidadeMedidaMap = {
+        /*[# th:each="unidade : ${T(com.restaurante.sistema.model.UnidadeMedida).values()}"]*/
+        '[(${unidade.name()})]': {
+            abreviacao: '[(${unidade.getAbreviacao()})]'
+        },
+        /*[/]*/
+    };
+
+    function adicionarLinha() {
+        const tableBody = document.getElementById('tabela-ficha-tecnica').getElementsByTagName('tbody')[0];
+        const newRow = tableBody.insertRow();
+        newRow.className = 'align-middle';
+
+        // Célula do Ingrediente (Select)
+        const cellIngrediente = newRow.insertCell(0);
+        let selectHtml = `<select class="form-select" name="fichaTecnica[${rowIndex}].ingrediente" onchange="atualizarDadosIngrediente(this)" required>`;
+        selectHtml += `<option value="">Selecione...</option>`;
+        ingredientes.forEach(ing => {
+            selectHtml += `<option value="${ing.id}" data-unidade-enum="${ing.unidadeMedida}" data-estoque="${ing.quantidadeEmEstoque}">${ing.nome}</option>`;
+        });
+        selectHtml += `</select>`;
+        cellIngrediente.innerHTML = selectHtml;
+
+        // Outras células
+        newRow.insertCell(1).innerHTML = `<input type="number" class="form-control" name="fichaTecnica[${rowIndex}].quantidade" step="0.01" min="0" required>`;
+        newRow.insertCell(2).className = 'unidade-label';
+        newRow.insertCell(3).className = 'estoque-label text-center';
+        newRow.insertCell(4).innerHTML = `<button type="button" class="btn btn-sm btn-outline-danger" onclick="removerLinha(this)"><i class="fas fa-trash"></i></button>`;
+
+        rowIndex++;
+    }
+
+    function removerLinha(button) {
+        button.closest('tr').remove();
+    }
+
+    function atualizarDadosIngrediente(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const unidadeEnumName = selectedOption.getAttribute('data-unidade-enum');
+        const estoque = selectedOption.getAttribute('data-estoque');
+
+        const row = selectElement.closest('tr');
+        const unidadeLabel = row.querySelector('.unidade-label');
+        const estoqueLabel = row.querySelector('.estoque-label');
+
+        let abreviacao = '';
+        // Usa o mapa para encontrar a abreviação correta
+        if (unidadeEnumName && unidadeMedidaMap[unidadeEnumName]) {
+            abreviacao = unidadeMedidaMap[unidadeEnumName].abreviacao;
+        }
+
+        unidadeLabel.textContent = abreviacao;
+        estoqueLabel.textContent = estoque || '0';
+    }
+</script>
+
+</body>
+</html>

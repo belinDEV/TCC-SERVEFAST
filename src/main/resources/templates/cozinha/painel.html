@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel da Cozinha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <style>
+        .kanban-board { display: flex; gap: 1rem; overflow-x: auto; }
+        .kanban-column { flex: 1; min-width: 320px; background-color: #f0f2f5; border-radius: 0.5rem; padding: 1rem; }
+        .pedido-card { border-left-width: 5px; }
+    </style>
+</head>
+<body class="bg-light">
+<div th:replace="~{index :: navbar}"></div>
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4"><i class="fas fa-fire-burner me-3"></i>Painel da Cozinha</h2>
+
+    <div class="kanban-board">
+        <!-- COLUNA: A FAZER -->
+        <div class="kanban-column">
+            <h4 class="text-center mb-3 p-2 bg-primary text-white rounded">A Fazer</h4>
+            <div th:each="pedido : ${pedidosAFazer}">
+                <div class="card shadow-sm mb-3 pedido-card border-primary">
+                    <!-- CORREÇÃO AQUI: class="card-body" -->
+                    <div class="card-body p-0">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5 class="card-title mb-0">Mesa <span th:text="${pedido.mesa.numero}"></span></h5>
+                            <small class="text-muted" th:text="${#temporals.format(pedido.dataHoraAbertura, 'HH:mm')}"></small>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li th:each="item : ${pedido.itens}" class="list-group-item">
+                                <span class="fw-bold" th:text="${item.quantidade} + 'x'"></span>
+                                <span th:text="${item.itemCardapio.nome}"></span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-footer text-center">
+                        <form th:action="@{/cozinha/pedido/{id}/iniciar-preparo(id=${pedido.id})}" method="post">
+                            <button type="submit" class="btn btn-primary">Iniciar Preparo</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA: EM PREPARO -->
+        <div class="kanban-column">
+            <h4 class="text-center mb-3 p-2 bg-warning text-dark rounded">Em Preparo</h4>
+            <div th:each="pedido : ${pedidosEmPreparo}">
+                <div class="card shadow-sm mb-3 pedido-card border-warning">
+                    <!-- CORREÇÃO AQUI: class="card-body" -->
+                    <div class="card-body p-0">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5 class="card-title mb-0">Mesa <span th:text="${pedido.mesa.numero}"></span></h5>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li th:each="item : ${pedido.itens}" class="list-group-item">
+                                <span class="fw-bold" th:text="${item.quantidade} + 'x'"></span>
+                                <span th:text="${item.itemCardapio.nome}"></span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-footer text-center">
+                        <form th:action="@{/cozinha/pedido/{id}/marcar-pronto(id=${pedido.id})}" method="post">
+                            <button type="submit" class="btn btn-warning">Marcar como Pronto</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA: PRONTO PARA ENTREGA -->
+        <div class="kanban-column">
+            <h4 class="text-center mb-3 p-2 bg-success text-white rounded">Pronto para Entrega</h4>
+            <div th:each="pedido : ${pedidosProntos}">
+                <div class="card shadow-sm mb-3 pedido-card border-success">
+                    <!-- CORREÇÃO AQUI: class="card-body" -->
+                    <div class="card-body p-0">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5 class="card-title mb-0">Mesa <span th:text="${pedido.mesa.numero}"></span></h5>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li th:each="item : ${pedido.itens}" class="list-group-item">
+                                <span class="fw-bold" th:text="${item.quantidade} + 'x'"></span>
+                                <span th:text="${item.itemCardapio.nome}"></span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-footer text-center text-muted">
+                        Aguardando retirada...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

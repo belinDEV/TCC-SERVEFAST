@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Cadastro de Mesa</title>
+</head>
+<body>
+<h1>Cadastro de Mesa</h1>
+<form th:action="@{/mesas/salvar}" th:object="${mesa}" method="post">
+    <input type="hidden" th:field="*{id}" />
+    <label>Número:</label>
+    <input type="number" th:field="*{numero}" required/><br/>
+    <label>Capacidade:</label>
+    <input type="number" th:field="*{capacidade}" required/><br/>
+    <label>Ocupada?</label>
+    <input type="checkbox" th:field="*{ocupada}"/><br/>
+    <button type="submit">Salvar</button>
+</form>
+<a th:href="@{/mesas}">Voltar</a>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhes do Pedido</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+</head>
+<body class="bg-light">
+<div th:replace="~{index :: navbar}"></div>
+
+<div class="container mt-4">
+
+    <!-- BLOCO PARA EXIBIR MENSAGENS DE ERRO (COMO ESTOQUE INSUFICIENTE) -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Erro ao adicionar item:</strong> <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- CABEÇALHO DO PEDIDO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-receipt me-3"></i>Pedido da Mesa <span class="badge bg-dark" th:text="${pedido.mesa.numero}"></span></h2>
+        <a th:href="@{/mesas}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Painel</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- SEÇÃO DE ITENS DO PEDIDO -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Itens do Pedido</div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th class="text-center">Qtd.</th>
+                            <th class="text-end">Vlr. Un.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${pedido.itens}" class="align-middle">
+                            <td th:text="${item.itemCardapio.nome}"></td>
+                            <td class="text-center" th:text="${item.quantidade}"></td>
+                            <td class="text-end" th:text="${#numbers.formatCurrency(item.precoUnitario)}"></td>
+                            <td class="text-end fw-bold" th:text="${#numbers.formatCurrency(item.subtotal)}"></td>
+                            <td class="text-center">
+                                <a th:href="@{/pedidos/remover-item/{itemId}(itemId=${item.id})}" class="btn btn-sm btn-outline-danger" title="Remover Item">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(pedido.itens)}">
+                            <td colspan="5" class="text-center text-muted p-4">Nenhum item adicionado ainda.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer d-flex justify-content-end align-items-center bg-dark text-white">
+                    <span class="fs-5 me-3">TOTAL:</span>
+                    <span class="fs-4 fw-bold" th:text="${#numbers.formatCurrency(pedido.valorTotal)}"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO DE AÇÕES E ADIÇÃO DE ITEM -->
+        <div class="col-lg-5">
+            <!-- Card para Adicionar Novo Item -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header fw-bold">Adicionar Novo Item</div>
+                <div class="card-body">
+                    <form th:action="@{/pedidos/{id}/adicionar-item(id=${pedido.id})}" method="post">
+                        <div class="mb-3">
+                            <label for="itemCardapio" class="form-label">Item do Cardápio</label>
+                            <select id="itemCardapio" name="itemCardapioId" class="form-select" required>
+                                <option value="">Selecione um item...</option>
+                                <option th:each="ic : ${itensCardapio}" th:value="${ic.id}" th:text="${ic.nome}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantidade" class="form-label">Quantidade</label>
+                            <input type="number" id="quantidade" name="quantidade" class="form-control" value="1" min="1" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-plus me-2"></i>Adicionar ao Pedido</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Ações do Pedido -->
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold">Ações do Pedido</div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <!-- Este botão agora abre o modal -->
+                        <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalPagamento">
+                            <i class="fas fa-check-circle me-2"></i>Fechar Pedido e Liberar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================== -->
+<!--                MODAL DE PAGAMENTO                      -->
+<!-- ====================================================== -->
+<div class="modal fade" id="modalPagamento" tabindex="-1" aria-labelledby="modalPagamentoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalPagamentoLabel">Finalizar Pagamento</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form th:action="@{/pedidos/{id}/fechar(id=${pedido.id})}" method="post">
+                <div class="modal-body">
+                    <p>Selecione a forma de pagamento para fechar o pedido.</p>
+                    <div class="mb-3">
+                        <label for="formaPagamento" class="form-label">Forma de Pagamento</label>
+                        <select id="formaPagamento" name="formaPagamento" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option th:each="fp : ${formasPagamento}" th:value="${fp}" th:text="${fp.getDescricao()}"></option>
+                        </select>
+                    </div>
+                    <div class="text-end bg-light p-3 rounded">
+                        <h4>Total a Pagar: <span class="fw-bold text-success" th:text="${#numbers.formatCurrency(pedido.valorTotal)}"></span></h4>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Pagamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Adicionar o Bootstrap JS no final do body -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
